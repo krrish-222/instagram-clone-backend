@@ -7,5 +7,6 @@ authRouter.post('/register', authController.register);
 authRouter.post('/refresh-token', authController.refreshToken);
 authRouter.post('/logout', authController.logout);
 authRouter.post('/logout-all', authController.logoutAll);
+// authRouter.post("/verify-email", authController.verifyEmail);
 
 module.exports = authRouter;

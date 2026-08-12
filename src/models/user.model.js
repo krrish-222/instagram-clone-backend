@@ -49,7 +49,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['Male', 'Female', 'Other'],
     default: 'Other'
+  },
+  dateOfBirth: {
+    type: Date,
+    default: null
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
   }
+ 
 });
 
 // Pre-save hook to hash the password before saving
