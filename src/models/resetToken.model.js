@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const otpSchema = new mongoose.Schema({
+const resetTokenSchema = new mongoose.Schema({
     userId: {
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
         required:true
     },
-    otp:{
+    resetTokenHash:{
         type:String,
         required:true
     },
@@ -15,14 +15,11 @@ const otpSchema = new mongoose.Schema({
         type:Date,
         required:true,
         expires:0
+    },
+    used:{
+        type:Boolean,
+        default:false
     }
-},{
-    timestamps:true,
 });
 
-otpSchema.pre('save', function() {
-    const otpHash = bcrypt.hashSync(this.otp, 10);
-    this.otp = otpHash;
-});
-
-module.exports = mongoose.model("Otp",otpSchema);
+module.exports = mongoose.model("ResetToken",resetTokenSchema);

@@ -129,3 +129,212 @@ exports.sendVerificationOtpEmail = async (userEmail, otp) => {
 
     await sendEmail(userEmail, subject, text, html);
 };
+
+exports.sendPasswordResetLink = async (email, resetToken) => {
+  const subject = 'Reset your Instagram password';
+
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+  const text = `
+Sorry to hear you're having trouble logging into Instagram.
+
+We received a request to reset your password. If this was you, you can reset your password using the link below:
+
+${resetUrl}
+
+If you didn't request a password reset, you can safely ignore this email.
+  `.trim();
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Reset your password</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #fafafa;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #262626;
+    }
+
+    .wrapper {
+      width: 100%;
+      padding: 40px 0;
+      background-color: #fafafa;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border: 1px solid #dbdbdb;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .content {
+      padding: 40px 45px;
+      text-align: center;
+    }
+
+    .brand {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      margin-bottom: 35px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 18px;
+    }
+
+    .text {
+      font-size: 14px;
+      line-height: 21px;
+      color: #737373;
+      margin: 0 auto 25px;
+      max-width: 390px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 11px 24px;
+      background-color: #0095f6;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 10px 0 25px;
+    }
+
+    .fallback {
+      font-size: 12px;
+      line-height: 18px;
+      color: #8e8e8e;
+      word-break: break-all;
+      margin-top: 10px;
+    }
+
+    .fallback a {
+      color: #00376b;
+      text-decoration: none;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: #efefef;
+      margin: 30px 0;
+    }
+
+    .footer {
+      padding: 20px 30px 30px;
+      text-align: center;
+      background-color: #fafafa;
+    }
+
+    .footer-text {
+      font-size: 11px;
+      line-height: 17px;
+      color: #8e8e8e;
+      margin: 0;
+    }
+
+    @media only screen and (max-width: 600px) {
+      .wrapper {
+        padding: 20px 0;
+      }
+
+      .container {
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+      }
+
+      .content {
+        padding: 35px 25px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+    <div class="container">
+
+      <div class="content">
+
+        <div class="brand">
+          Instagram
+        </div>
+
+        <h1 class="title">
+          Reset your password
+        </h1>
+
+        <p class="text">
+          Sorry to hear you're having trouble logging into Instagram.
+          We received a request to reset your password.
+        </p>
+
+        <p class="text">
+          If this was you, you can reset your password using the button below.
+        </p>
+
+        <a
+          href="${resetUrl}"
+          class="button"
+          target="_blank"
+        >
+          Reset Password
+        </a>
+
+        <div class="divider"></div>
+
+        <p class="fallback">
+          If the button doesn't work, copy and paste this link into your browser:
+        </p>
+
+        <p class="fallback">
+          <a href="${resetUrl}" target="_blank">
+            ${resetUrl}
+          </a>
+        </p>
+
+        <div class="divider"></div>
+
+        <p class="footer-text">
+          If you didn't request a password reset, you can safely ignore this
+          email. Your password will not be changed.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <p class="footer-text">
+        This email was sent as part of your account security.
+      </p>
+    </div>
+
+  </div>
+
+</body>
+</html>
+  `;
+
+  await sendEmail(email, subject, text, html);
+};

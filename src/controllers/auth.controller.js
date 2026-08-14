@@ -1,6 +1,7 @@
 const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 const Session = require('../models/session.model');
+const ResetToken = require('../models/resetToken.model');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const emailService = require('../services/email.service');
@@ -9,7 +10,8 @@ const Otp = require('../models/otp.model');
 
 exports.register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+
+    let { username, email, password } = req.body;
 
     // Trim and normalize input
     username = username.trim().toLowerCase();
@@ -51,7 +53,6 @@ exports.register = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-
 
     // Check if the user already exists
     const existingUser = await User.findOne({$or: [{ email }, { username }]});
@@ -249,12 +250,22 @@ exports.sendOtp = async (req, res) => {
       return res.status(400).json({ message: 'User not found' });
     }
 
+    if(user.isVerified){
+      res.status(400).json({
+        message: "User is already verified",
+      })
+    }
+   
     //generate a random OTP and save it to the database with an expiration time
     const randomOtp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
+    const otp = new Otp({ userId:user._id, otp: randomOtp, expiresAt: new Date(Date.now() + 3 * 60 * 1000) }); // OTP expires in 3 minute
     
-    const otp = new Otp({ email, otp: randomOtp, expiresAt: new Date(Date.now() + 1 * 60 * 1000) }); // OTP expires in 1 minute
+    try{
     await otp.save();
-
+    }catch(err){
+      console.log(err)
+    }
+    console.log(otp);
     //send the OTP to the user's email
     await emailService.sendVerificationOtpEmail(email, randomOtp);
 
@@ -278,7 +289,7 @@ exports.verifyEmail = async (req, res) => {
     }
 
     // Check if the OTP is valid
-    const otpRecord = await Otp.findOne({ email, otp });
+    const otpRecord = await Otp.findOne({ userId:user._id });
     if (!otpRecord) {
       return res.status(400).json({ message: 'Invalid OTP' });
     }
@@ -287,9 +298,14 @@ exports.verifyEmail = async (req, res) => {
     if (otpRecord.expiresAt < new Date()) {
       return res.status(400).json({ message: 'OTP has expired' });
     }
+    //checking otp correct or not
+    const isOtpCorrect = await bcrypt.compare(otp,otpRecord.otp);
+    if(!isOtpCorrect){
+      return res.status(400).json({ message: 'Incorrect OTP' });
+    }
 
     // Mark the user's email as verified
-    user.isEmailVerified = true;
+    user.isVerified = true;
     await user.save();
 
     // Delete the OTP record after successful verification
@@ -300,3 +316,70 @@ exports.verifyEmail = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.forgotPassword = async (req, res) => {
+
+  try {
+    const { email } = req.body;
+    
+    const user = User.findOne({ email });
+
+    if (!user) {
+      res.status(400).json({
+        message: "User does not exist"
+      });
+    }
+
+    //generation random reset token
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const resetTokenObj = new ResetToken({userId:user._id,resetTokenHash, expiresAt: new Date(Date.now() + 5 * 60 * 1000)});
+    await resetTokenObj.save();
+
+
+    res.status(200).json({
+      message: "Reset Link send successfully"
+    })
+
+    emailService.sendPasswordResetLink(email,resetToken)
+  }
+  catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error",
+      resetToken
+    })
+  }
+}
+
+exports.resetPassword = async (req, res) => {
+
+  try {
+    //validate the request body
+    const { resetToken, newPassword } = req.body;
+
+    //check if the token is valid
+    const resetTokenHash = crypto.createHash("sha").update(resetToken).digest("hex");
+    const resetTokenObj = await ResetToken.findOne({ resetTokenHash });
+    if (!resetTokenObj) {
+      return res.status(400).json({ message: "Token is invalid" });
+    }
+
+    //check if the token is expired
+    if (resetTokenObj.expiresAt < Date.now) {
+      return res.status(400).json({ message: "Token is expired" });
+    }
+
+    //update the password
+    const user = User.findById(resetTokenObj.userId);
+    user.password = newPassword;
+    await user.save();
+    //send the response  
+    return res.status(200).json({ message: "Password reset successful" });
+  }
+  catch (err) {
+    return res.status(500).json({
+      message: "Internal server error"
+    })
+  }
+}

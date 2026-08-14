@@ -24,7 +24,7 @@ const sessionSchema = new mongoose.Schema({
   }
 },{
   timestamps: true,
-  expires: 7 * 24 * 60 * 60 // Session expires after 7 days
+  expires: 1 * 24 * 60 * 60 // Session expires after 1 days
 });
 
 module.exports = mongoose.model('Session', sessionSchema);
