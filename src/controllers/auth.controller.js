@@ -320,12 +320,11 @@ exports.verifyEmail = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
 
   try {
-    const { email } = req.body;
-    
-    const user = User.findOne({ email });
+    const { username, email } = req.body;
+    const user = await User.findOne( {$or:[{username},{email}]});
 
     if (!user) {
-      res.status(400).json({
+      return res.status(400).json({
         message: "User does not exist"
       });
     }
@@ -339,27 +338,28 @@ exports.forgotPassword = async (req, res) => {
 
 
     res.status(200).json({
-      message: "Reset Link send successfully"
+      message: "Reset Link send successfully",
+      resetToken
     })
 
     emailService.sendPasswordResetLink(email,resetToken)
   }
   catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Internal Server Error",
-      resetToken
     })
   }
 }
 
 exports.resetPassword = async (req, res) => {
-
   try {
     //validate the request body
     const { resetToken, newPassword } = req.body;
 
     //check if the token is valid
-    const resetTokenHash = crypto.createHash("sha").update(resetToken).digest("hex");
+    const resetTokenHash= crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    //checking reset token in database
     const resetTokenObj = await ResetToken.findOne({ resetTokenHash });
     if (!resetTokenObj) {
       return res.status(400).json({ message: "Token is invalid" });
@@ -369,17 +369,30 @@ exports.resetPassword = async (req, res) => {
     if (resetTokenObj.expiresAt < Date.now) {
       return res.status(400).json({ message: "Token is expired" });
     }
+    //check if used is true
+    if(resetTokenObj.used){
+      return res.status(400).json({message:"Token is already used"});
+    }
 
     //update the password
-    const user = User.findById(resetTokenObj.userId);
+    const user = await User.findById(resetTokenObj.userId);
     user.password = newPassword;
     await user.save();
+
+    //setting used true in reset token
+    resetTokenObj.used = true;
+    await resetTokenObj.save();
+
+    //revoke all the sessions
+    await Session.deleteMany({ userId: user._id});    
+    
     //send the response  
     return res.status(200).json({ message: "Password reset successful" });
   }
   catch (err) {
     return res.status(500).json({
-      message: "Internal server error"
+      message: "Internal server error",
+      error:err
     })
   }
 }
