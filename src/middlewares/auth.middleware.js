@@ -7,6 +7,7 @@ const authMiddleware = async (req,res,next)=>{
     //     return res.status(401).json({message:"Unauthorized"});
     // }
     // const accessToken = authHeader.split(" ")[1];
+
     const accessToken = req.body.accessToken; //get
 
     const decoded = await jwt.verify(accessToken,process.env.JWT_SECRET);
