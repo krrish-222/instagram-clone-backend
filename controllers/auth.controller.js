@@ -70,7 +70,7 @@ exports.register = async (req, res) => {
     }
 
     //creating session
-    const session = new Session({ userId: newUser._id, ip: req.ip, userAgent: req.get('User-Agent') });
+    const session = new Session({ userId: newUser._id, ip: req.ip, userAgent: req.get('User-Agent'),expiresAt: new Date(Date.now() + 30*24*60*60*1000 ) });
     await session.save();
 
     // Generate refresh token
@@ -122,7 +122,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid password' });
     }
     // Create a new session
-    const session = new Session({ userId: user._id, ip: req.ip, userAgent: req.get('User-Agent')  });
+    const session = new Session({ userId: user._id, ip: req.ip, userAgent: req.get('User-Agent'),expiresAt:new Date(Date.now()+30*24*60*60*1000) });
     await session.save();
 
     // Generate refresh token

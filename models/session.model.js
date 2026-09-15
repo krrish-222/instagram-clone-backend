@@ -21,10 +21,14 @@ const sessionSchema = new mongoose.Schema({
   revoked: {
     type: Boolean,
     default: false
-  }
+  },
+  expiresAt:{
+        type:Date,
+        required:true,
+        expires:0
+    }
 },{
   timestamps: true,
-  expires: 1 * 24 * 60 * 60 // Session expires after 1 days
 });
 
 module.exports = mongoose.model('Session', sessionSchema);
